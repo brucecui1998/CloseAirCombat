@@ -1,9 +1,6 @@
 # ignore files
 test.py
-results
-runs
 *.npy
-*.acmi
 
 # vscode config
 .vscode
