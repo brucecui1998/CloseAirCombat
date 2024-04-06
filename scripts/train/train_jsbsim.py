@@ -15,6 +15,7 @@ from config import get_config
 from runner.share_jsbsim_runner import ShareJSBSimRunner
 from envs.JSBSim.envs import SingleCombatEnv, SingleControlEnv, MultipleCombatEnv
 from envs.env_wrappers import SubprocVecEnv, DummyVecEnv, ShareSubprocVecEnv, ShareDummyVecEnv
+from runner.tacview import Tacview
 
 
 def make_train_env(all_args):
@@ -75,6 +76,8 @@ def parse_args(args, parser):
     group = parser.add_argument_group("JSBSim Env parameters")
     group.add_argument('--scenario-name', type=str, default='singlecombat_simple',
                        help="Which scenario to run on")
+    group.add_argument('--render-mode', type=str, default='txt',
+                       help="txt or real_time")
     all_args = parser.parse_known_args(args)[0]
     return all_args
 
@@ -137,14 +140,20 @@ def main(args):
     envs = make_train_env(all_args)
     eval_envs = make_eval_env(all_args) if all_args.use_eval else None
 
+    # render mode init
+    render_mode = all_args.render_mode
+    if render_mode == "real_time":
+        tacview = Tacview()
     config = {
         "all_args": all_args,
         "envs": envs,
         "eval_envs": eval_envs,
         "device": device,
-        "run_dir": run_dir
+        "run_dir": run_dir,
+        "render_mode": render_mode
     }
 
+    
     # run experiments
     if all_args.env_name == "MultipleCombat":
         runner = ShareJSBSimRunner(config)
@@ -155,7 +164,7 @@ def main(args):
             from runner.jsbsim_runner import JSBSimRunner as Runner
         runner = Runner(config)
     try:
-        runner.run()
+        runner.run(tacview=tacview)
     except BaseException:
         traceback.print_exc()
     finally:

@@ -34,13 +34,14 @@ class JSBSimRunner(Runner):
         if self.model_dir is not None:
             self.restore()
 
-    def run(self):
+    def run(self, tacview=None):
         self.warmup()
 
         start = time.time()
         self.total_num_steps = 0
         episodes = self.num_env_steps // self.buffer_size // self.n_rollout_threads
 
+        self.timestamp = 0
         for episode in range(episodes):
 
             heading_turns_list = []
@@ -50,7 +51,7 @@ class JSBSimRunner(Runner):
                 values, actions, action_log_probs, rnn_states_actor, rnn_states_critic = self.collect(step)
 
                 # Obser reward and next obs
-                obs, rewards, dones, infos = self.envs.step(actions)
+                obs, rewards, dones, infos = self.envs.step(actions)                   
 
                 # Extra recorded information
                 for info in infos:
@@ -91,8 +92,9 @@ class JSBSimRunner(Runner):
                 self.log_info(train_infos, self.total_num_steps)
 
             # eval
+            
             if episode % self.eval_interval == 0 and episode != 0 and self.use_eval:
-                self.eval(self.total_num_steps)
+                self.eval(self.total_num_steps, tacview=tacview)
 
             # save model
             if (episode % self.save_interval == 0) or (episode == episodes - 1):
@@ -134,8 +136,9 @@ class JSBSimRunner(Runner):
         self.buffer.insert(obs, actions, rewards, masks, action_log_probs, values, rnn_states_actor, rnn_states_critic)
 
     @torch.no_grad()
-    def eval(self, total_num_steps):
+    def eval(self, total_num_steps, tacview=None):
         logging.info("\nStart evaluation...")
+
         total_episodes, eval_episode_rewards = 0, []
         eval_cumulative_rewards = np.zeros((self.n_eval_rollout_threads, *self.buffer.rewards.shape[2:]), dtype=np.float32)
 
@@ -143,6 +146,7 @@ class JSBSimRunner(Runner):
         eval_masks = np.ones((self.n_eval_rollout_threads, *self.buffer.masks.shape[2:]), dtype=np.float32)
         eval_rnn_states = np.zeros((self.n_eval_rollout_threads, *self.buffer.rnn_states_actor.shape[2:]), dtype=np.float32)
 
+        
         while total_episodes < self.eval_episodes:
 
             self.policy.prep_rollout()
@@ -154,6 +158,20 @@ class JSBSimRunner(Runner):
 
             # Obser reward and next obs
             eval_obs, eval_rewards, eval_dones, eval_infos = self.eval_envs.step(eval_actions)
+
+            # real render
+            
+            if self.render_mode == "real_time":
+                render_data = [f"#{self.timestamp:.2f}\n"]
+                for sim in self.eval_envs.envs[0]._jsbsims.values():
+                    log_msg = sim.log()
+                    if log_msg is not None:
+                        render_data.append(log_msg + "\n")
+                # 将data列表中的所有字符串元素合并成一个单一的字符串
+                render_data_str = "".join(render_data)
+                # 直接发送当前时刻的数据
+                tacview.send_data_to_client(render_data_str)
+            self.timestamp += 0.2
 
             eval_cumulative_rewards += eval_rewards
             eval_dones_env = np.all(eval_dones.squeeze(axis=-1), axis=-1)
