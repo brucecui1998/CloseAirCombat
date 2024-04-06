@@ -164,9 +164,11 @@ class DummyVecEnv(VecEnv):
         for env in self.envs:
             env.close()
 
-    def render(self, mode, filepath):
+    def render(self, mode, filepath, tacview=None):
         if mode == 'txt':
             self.envs[0].render(mode, filepath)
+        if mode == 'real_time':
+            self.envs[0].render(mode, filepath, tacview=tacview)
 
     @classmethod
     def _flatten(cls, v):

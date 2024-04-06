@@ -44,6 +44,8 @@ def parse_args(args, parser):
                        help="number of fighters controlled by RL policy")
     group.add_argument('--num-agents', type=int, default=1,
                        help="number of fighters controlled by RL policy")
+    group.add_argument('--render-mode', type=str, default="txt",
+                       help="mode is txt or real_time")
     all_args = parser.parse_known_args(args)[0]
     return all_args
 
@@ -87,13 +89,17 @@ def main(args):
     envs = make_render_env(all_args)
     num_agents = all_args.num_agents
 
+    # render_mode init ( txt or real )
+    render_mode = all_args.render_mode
+
     config = {
         "all_args": all_args,
         "eval_envs": None,
         "envs": envs,
         "num_agents": num_agents,
         "device": device,
-        "run_dir": run_dir
+        "run_dir": run_dir,
+        "render_mode": render_mode
     }
 
     # run experiments

@@ -18,6 +18,7 @@ class Runner(object):
         self.envs = config['envs']
         self.eval_envs = config['eval_envs']
         self.device = config['device']
+        self.render_mode = config['render_mode']
 
         # parameters
         self.env_name = self.all_args.env_name

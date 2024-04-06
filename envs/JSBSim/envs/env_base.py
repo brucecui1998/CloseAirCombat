@@ -1,6 +1,7 @@
 import gymnasium
 from gymnasium.utils import seeding
 import numpy as np
+import time
 from typing import Dict, Any, Tuple
 from ..core.simulatior import AircraftSimulator, BaseSimulator
 from ..tasks.task_base import BaseTask
@@ -179,7 +180,7 @@ class BaseEnv(gymnasium.Env):
         self._jsbsims.clear()
         self._tempsims.clear()
 
-    def render(self, mode="txt", filepath='./JSBSimRecording.txt.acmi'):
+    def render(self, mode="txt", filepath='./JSBSimRecording.txt.acmi', tacview=None):
         """Renders the environment.
 
         The set of supported modes varies per environment. (And some
@@ -190,6 +191,7 @@ class BaseEnv(gymnasium.Env):
 
         - human: print on the terminal
         - txt: output to txt.acmi files
+        - real_time: realtime render with tacview by socket comm
 
         Note:
 
@@ -216,9 +218,33 @@ class BaseEnv(gymnasium.Env):
                     log_msg = sim.log()
                     if log_msg is not None:
                         f.write(log_msg + "\n")
-        # TODO: real time rendering [Use FlightGear, etc.]
-        else:
-            raise NotImplementedError
+        if mode == "real_time":
+            # if not self._create_records:
+            #     header_data = [
+            #     "FileType=text/acmi/tacview\n",
+            #     "FileVersion=2.1\n",
+            #     "0,ReferenceTime=2020-04-01T00:00:00Z\n"
+            #     ]
+            #     tacview.send_data_to_client(header_data)
+            #     self._create_records = True
+            timestamp = self.current_step * self.time_interval
+            data = [f"#{timestamp:.2f}\n"]
+            for sim in self._jsbsims.values():
+                log_msg = sim.log()
+                if log_msg is not None:
+                    data.append(log_msg + "\n")
+        
+            for sim in self._tempsims.values():
+                log_msg = sim.log()
+                if log_msg is not None:
+                    data.append(log_msg + "\n")
+
+            # 将data列表中的所有字符串元素合并成一个单一的字符串
+            data_str = "".join(data)
+            # 直接发送当前时刻的数据
+            tacview.send_data_to_client(data_str)
+            time.sleep(0.01)  # 根据需要调整延迟以模拟实时数据流
+                
 
     def seed(self, seed=None):
         """
