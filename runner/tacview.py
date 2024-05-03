@@ -1,8 +1,9 @@
 import socket
 class Tacview(object):
     def __init__(self):
-        host = '192.168.1.111'
-        port = 12345
+        # 用户手动输入 IP 地址和端口号
+        host = input("请输入服务器的 IP 地址: ")
+        port = int(input("请输入端口号: "))
 
         # 创建套接字
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
