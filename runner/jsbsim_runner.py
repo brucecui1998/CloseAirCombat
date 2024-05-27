@@ -94,7 +94,11 @@ class JSBSimRunner(Runner):
             # eval
             
             if episode % self.eval_interval == 0 and episode != 0 and self.use_eval:
-                self.eval(self.total_num_steps, tacview=tacview)
+                if self.all_args.render_mode == "real_time":
+                    self.eval(self.total_num_steps, tacview=tacview)
+                else:
+                    self.eval(self.total_num_steps)            
+                
 
             # save model
             if (episode % self.save_interval == 0) or (episode == episodes - 1):

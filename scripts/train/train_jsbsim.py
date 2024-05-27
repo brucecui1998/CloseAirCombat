@@ -164,7 +164,11 @@ def main(args):
             from runner.jsbsim_runner import JSBSimRunner as Runner
         runner = Runner(config)
     try:
-        runner.run(tacview=tacview)
+        if render_mode == "real_time":
+            runner.run(tacview=tacview)
+        else:
+            runner.run()
+        
     except BaseException:
         traceback.print_exc()
     finally:

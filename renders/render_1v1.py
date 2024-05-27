@@ -1,5 +1,9 @@
+import sys
+import os
 import numpy as np
 import torch
+# 将项目根路径加入模块搜索路径，
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from envs.JSBSim.envs import SingleCombatEnv, SingleControlEnv, MultipleCombatEnv
 from envs.env_wrappers import SubprocVecEnv, DummyVecEnv
 from envs.JSBSim.core.catalog import Catalog as c
@@ -28,8 +32,8 @@ render = True
 ego_policy_index = 1040
 enm_policy_index = 0
 episode_rewards = 0
-ego_run_dir = "/home/lqh/jyh/CloseAirCombat/scripts/results/SingleCombat/1v1/NoWeapon/HierarchySelfplay/ppo/artillery_check/wandb/latest-run/files"
-enm_run_dir = "/home/lqh/jyh/CloseAirCombat/scripts/results/SingleCombat/1v1/NoWeapon/HierarchySelfplay/ppo/artillery_check/wandb/latest-run/files"
+ego_run_dir = "/home/fox/work/CloseAirCombat/scripts/results/SingleCombat/1v1/NoWeapon/Selfplay/ppo/v1/wandb/run-20240522_103042-y7p8zmc0/files"
+enm_run_dir = "/home/fox/work/CloseAirCombat/scripts/results/SingleCombat/1v1/NoWeapon/Selfplay/ppo/v1/wandb/run-20240522_103042-y7p8zmc0/files"
 experiment_name = ego_run_dir.split('/')[-4]
 
 env = SingleCombatEnv("1v1/NoWeapon/Selfplay")
