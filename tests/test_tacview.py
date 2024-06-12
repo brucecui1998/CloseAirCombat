@@ -4,8 +4,13 @@ import time
 
 class tacview(object):
     def __init__(self):
-        host = '192.168.1.111'
-        port = 12345
+        host = input("请输入服务器IP地址：")
+        port = int(input("请输入服务器端口："))
+
+        # 提示用户打开tacview软件高级版，点击“记录”-“实时遥测”
+        print("请打开tacview软件高级版，点击“记录”-“实时遥测”，并使用以下设置：")
+        print(f"IP地址：{host}")
+        print(f"端口：{port}")
 
         # 创建套接字
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
