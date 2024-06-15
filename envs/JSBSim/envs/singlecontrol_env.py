@@ -1,3 +1,4 @@
+import logging
 from .env_base import BaseEnv
 from ..tasks.heading_task import HeadingTask
 
@@ -25,6 +26,7 @@ class SingleControlEnv(BaseEnv):
         self.heading_turn_counts = 0
         self.task.reset(self)
         obs = self.get_obs()
+        # logging.info(f"Environment reset: initial heading = {self.init_states[0]['target_heading_deg']}")
         return self._pack(obs)
 
     def reset_simulators(self):

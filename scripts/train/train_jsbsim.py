@@ -10,6 +10,7 @@ import logging
 import numpy as np
 from pathlib import Path
 import setproctitle
+# 将当前脚本文件的上上一级目录添加到 Python 的模块搜索路径 (sys.path) 中
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from config import get_config
 from runner.share_jsbsim_runner import ShareJSBSimRunner
@@ -142,8 +143,9 @@ def main(args):
 
     # render mode init
     render_mode = all_args.render_mode
-    if render_mode == "real_time":
-        tacview = Tacview()
+    # 初始化 tacview 对象，如果 render_mode 是 "real_time" 则创建对象，否则为 None
+    tacview = Tacview() if all_args.render_mode == "real_time" else None
+    
     config = {
         "all_args": all_args,
         "envs": envs,
@@ -164,17 +166,14 @@ def main(args):
             from runner.jsbsim_runner import JSBSimRunner as Runner
         runner = Runner(config)
     try:
-        if render_mode == "real_time":
-            runner.run(tacview=tacview)
-        else:
-            runner.run()
+        runner.run(tacview=tacview)
         
     except BaseException:
         traceback.print_exc()
     finally:
         # post process
         envs.close()
-
+            
         if all_args.use_wandb:
             run.finish()
 

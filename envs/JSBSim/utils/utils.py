@@ -2,7 +2,7 @@ import os
 import yaml
 import pymap3d
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 def parse_config(filename):
     """Parse JSBSim config file.
@@ -116,3 +116,93 @@ def in_range_rad(angle):
     if angle > np.pi:
         angle -= 2 * np.pi
     return angle
+
+# 计算四元数q
+def euler_to_quaternion(roll, pitch, yaw):
+    """
+    Convert Euler angles to Quaternion.
+    :param roll: roll angle (rad)
+    :param pitch: pitch angle (rad)
+    :param yaw: yaw angle (rad)
+    :return: Quaternion (w, x, y, z)
+    """
+    cy = np.cos(yaw * 0.5)
+    sy = np.sin(yaw * 0.5)
+    cp = np.cos(pitch * 0.5)
+    sp = np.sin(pitch * 0.5)
+    cr = np.cos(roll * 0.5)
+    sr = np.sin(roll * 0.5)
+
+    w = cr * cp * cy + sr * sp * sy
+    x = sr * cp * cy - cr * sp * sy
+    y = cr * sp * cy + sr * cp * sy
+    z = cr * cp * sy - sr * sp * cy
+
+    return np.array([w, x, y, z])
+
+# 计算四元数的时间导数 0.5 * ​q⊗ω q=(w,x,y,z)
+# ω=(0,ωx,ωy,ωz)
+# ⊗ 表示四元数乘法
+def quaternion_derivative(q, omega):
+    """
+    Calculate the derivative of the quaternion.
+    :param q: Quaternion (w, x, y, z)
+    :param omega: Angular velocity (roll rate, pitch rate, yaw rate)
+    :return: Quaternion derivative (dq/dt)
+    """
+    w, x, y, z = q
+    wx, wy, wz = omega
+
+    dqdt = 0.5 * np.array([
+        -x * wx - y * wy - z * wz,
+         w * wx + y * wz - z * wy,
+         w * wy - x * wz + z * wx,
+         w * wz + x * wy - y * wx
+    ])
+
+    return dqdt
+
+def calculate_ossm(rpy, rpy_velocity):
+    """
+    Calculate the One-Step Smoothness Metric (OSSM).
+    :param rpy: Tuple of (roll, pitch, yaw) in radians
+    :param rpy_velocity: Tuple of (roll rate, pitch rate, yaw rate) in radians per second
+    :return: OSSM value
+    """
+    roll, pitch, yaw = rpy
+    roll_rate, pitch_rate, yaw_rate = rpy_velocity
+    
+    # 将姿态角转换为四元数
+    q = euler_to_quaternion(roll, pitch, yaw)
+    
+    # 计算四元数的时间导数
+    omega = np.array([roll_rate, pitch_rate, yaw_rate])
+    dqdt = quaternion_derivative(q, omega)
+    
+    # 计算四元数时间导数的二范数，即OSSM
+    ossm = np.linalg.norm(dqdt)
+    
+    return ossm
+
+# 保存图像的函数
+def save_ossm_plot(timestamps, ossm_values, save_dir='png'):
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    
+    # 自动生成文件名后缀
+    file_list = os.listdir(save_dir)
+    existing_indices = [int(f.split('_')[-1].split('.')[0]) for f in file_list if f.startswith('ossm_plot_') and f.endswith('.png')]
+    new_index = max(existing_indices) + 1 if existing_indices else 0
+    
+    plt.figure()
+    plt.plot(timestamps, ossm_values, 'r-')
+    plt.xlabel('Timestamp')
+    plt.ylabel('OSSM')
+    plt.title('OSSM Over Time')
+    filename = os.path.join(save_dir, f"ossm_plot_{new_index}.png")
+    # 保存图像
+    plt.tight_layout()
+    plt.savefig(filename)
+    plt.close()
+    print(f"Saved plot to {filename}")
+    

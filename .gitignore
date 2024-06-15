@@ -2,6 +2,9 @@
 test.py
 *.npy
 
+# ossm图像
+/png
+
 /scripts/results/*
 
 # vscode config

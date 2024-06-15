@@ -2,17 +2,19 @@ import time
 import torch
 import logging
 
+
 import numpy as np
 from typing import List
 from .base_runner import Runner, ReplayBuffer
 from .tacview import Tacview
 
+from envs.JSBSim.utils.utils import calculate_ossm, save_ossm_plot
 
 def _t2n(x):
     return x.detach().cpu().numpy()
 
 class JSBSimRunner(Runner):
-
+        
     def load(self):
         self.obs_space = self.envs.observation_space
         self.act_space = self.envs.action_space
@@ -41,7 +43,6 @@ class JSBSimRunner(Runner):
         self.total_num_steps = 0
         episodes = self.num_env_steps // self.buffer_size // self.n_rollout_threads
 
-        self.timestamp = 0
         for episode in range(episodes):
 
             heading_turns_list = []
@@ -150,7 +151,13 @@ class JSBSimRunner(Runner):
         eval_masks = np.ones((self.n_eval_rollout_threads, *self.buffer.masks.shape[2:]), dtype=np.float32)
         eval_rnn_states = np.zeros((self.n_eval_rollout_threads, *self.buffer.rnn_states_actor.shape[2:]), dtype=np.float32)
 
+        # OSSM数据存储
+        ossm_values = []
+        timestamps = []
+        self.timestamp = 0
         
+        logging.debug(f"Initial ossm_values: {ossm_values}")
+        logging.debug(f"Initial timestamps: {timestamps}")
         while total_episodes < self.eval_episodes:
 
             self.policy.prep_rollout()
@@ -164,17 +171,28 @@ class JSBSimRunner(Runner):
             eval_obs, eval_rewards, eval_dones, eval_infos = self.eval_envs.step(eval_actions)
 
             # real render
-            
+
             if self.render_mode == "real_time":
                 render_data = [f"#{self.timestamp:.2f}\n"]
                 for sim in self.eval_envs.envs[0]._jsbsims.values():
                     log_msg = sim.log()
+                    
+                    # 计算ossm
+                    ossm = calculate_ossm(sim.get_rpy(), sim.get_rpy_velocity())
+                    # print(f"Timestamp: {self.timestamp:.2f}, UID: {sim.uid}, OSSM: {ossm:.6f}")
+                    
+                    # 更新OSSM数据
+                    ossm_values.append(ossm)
+                    timestamps.append(self.timestamp)
+                    
                     if log_msg is not None:
                         render_data.append(log_msg + "\n")
+                        
                 # 将data列表中的所有字符串元素合并成一个单一的字符串
                 render_data_str = "".join(render_data)
                 # 直接发送当前时刻的数据
                 tacview.send_data_to_client(render_data_str)
+            
             self.timestamp += 0.2
 
             eval_cumulative_rewards += eval_rewards
@@ -191,6 +209,7 @@ class JSBSimRunner(Runner):
         eval_infos['eval_average_episode_rewards'] = np.concatenate(eval_episode_rewards).mean(axis=1)  # shape: [num_agents, 1]
         logging.info(" eval average episode rewards: " + str(np.mean(eval_infos['eval_average_episode_rewards'])))
         self.log_info(eval_infos, total_num_steps)
+        save_ossm_plot(timestamps, ossm_values, "png") # 画ossm图像
         logging.info("...End evaluation")
 
     @torch.no_grad()

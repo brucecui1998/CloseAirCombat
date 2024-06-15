@@ -29,6 +29,7 @@ class BaseSimulator(ABC):
         self._geodetic = np.zeros(3)
         self._position = np.zeros(3)
         self._posture = np.zeros(3)
+        self._posture_prev = np.zeros(3)  # 上一时刻的角速度初始化为0
         self._velocity = np.zeros(3)
         logging.debug(f"{self.__class__.__name__}:{self.__uid} is created!")
 
@@ -143,6 +144,22 @@ class AircraftSimulator(BaseSimulator):
     def is_shotdown(self):
         return self.__status == AircraftSimulator.SHOTDOWN
 
+    def get_rpy_velocity(self):
+        """计算角速度 (roll rate, pitch rate, yaw rate), unit: rad/s"""
+        # 当前的姿态角
+        roll, pitch, yaw = self.get_rpy()
+        # 前一时刻的姿态角（假设已保存）
+        roll_prev, pitch_prev, yaw_prev = self._posture_prev
+        # 时间步长
+        dt = self.dt
+
+        # 计算角速度
+        roll_rate = (roll - roll_prev) / dt
+        pitch_rate = (pitch - pitch_prev) / dt
+        yaw_rate = (yaw - yaw_prev) / dt            
+
+        return np.array([roll_rate, pitch_rate, yaw_rate])
+    
     def crash(self):
         self.__status = AircraftSimulator.CRASH
 
@@ -236,6 +253,9 @@ class AircraftSimulator(BaseSimulator):
         self.enemies = []
 
     def _update_properties(self):
+        
+        # 将更新前的姿态角保存到 self._posture_prev
+        self._posture_prev = self._posture.copy()
         # update position
         self._geodetic[:] = self.get_property_values([
             Catalog.position_long_gc_deg,
