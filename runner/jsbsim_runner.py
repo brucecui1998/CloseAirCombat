@@ -8,7 +8,7 @@ from typing import List
 from .base_runner import Runner, ReplayBuffer
 from .tacview import Tacview
 
-from envs.JSBSim.utils.utils import calculate_ossm, save_ossm_plot
+from envs.JSBSim.utils.utils import calculate_ossm, save_ossm_plot,calculate_mssm,calculate_mssm_upper_bound
 
 def _t2n(x):
     return x.detach().cpu().numpy()
@@ -209,7 +209,12 @@ class JSBSimRunner(Runner):
         eval_infos['eval_average_episode_rewards'] = np.concatenate(eval_episode_rewards).mean(axis=1)  # shape: [num_agents, 1]
         logging.info(" eval average episode rewards: " + str(np.mean(eval_infos['eval_average_episode_rewards'])))
         self.log_info(eval_infos, total_num_steps)
-        save_ossm_plot(timestamps, ossm_values, "png") # 画ossm图像
+        mssm = calculate_mssm(ossm_values, gamma=0.9)
+        epsilon = max(ossm_values)  # 假设OSSM的上限为已知的最大OSSM值
+        mssm_upper_bound = calculate_mssm_upper_bound(epsilon, len(ossm_values), gamma=0.9)
+        print(f"MSSM: {mssm}")
+        print(f"MSSM的上界: {mssm_upper_bound}")
+        save_ossm_plot(timestamps, ossm_values, mssm, mssm_upper_bound)
         logging.info("...End evaluation")
 
     @torch.no_grad()

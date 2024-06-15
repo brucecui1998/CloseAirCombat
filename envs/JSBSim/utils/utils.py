@@ -185,7 +185,7 @@ def calculate_ossm(rpy, rpy_velocity):
     return ossm
 
 # 保存图像的函数
-def save_ossm_plot(timestamps, ossm_values, save_dir='png'):
+def save_ossm_plot(timestamps, ossm_values, mssm, mssm_upper_bound, save_dir='png'):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     
@@ -199,10 +199,25 @@ def save_ossm_plot(timestamps, ossm_values, save_dir='png'):
     plt.xlabel('Timestamp')
     plt.ylabel('OSSM')
     plt.title('OSSM Over Time')
+    
+    # 添加 MSSM 和 MSSM 上界的注释
+    plt.text(0.05, 0.95, f'MSSM: {mssm:.4f}\nMSSM Upper Bound: {mssm_upper_bound:.4f}', 
+             transform=plt.gca().transAxes, fontsize=12, verticalalignment='top', bbox=dict(facecolor='white', alpha=0.5))
+    
     filename = os.path.join(save_dir, f"ossm_plot_{new_index}.png")
     # 保存图像
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
-    print(f"Saved plot to {filename}")
-    
+    print(f"Saved plot to {filename}")  
+# 计算多步平滑度指标（MSSM）
+def calculate_mssm(ossm_values, gamma=0.9):
+    mssm = 0
+    T = len(ossm_values)
+    for k in range(T):
+        mssm += gamma**k * ossm_values[k]
+    return mssm
+
+# 计算MSSM的上界
+def calculate_mssm_upper_bound(epsilon, T, gamma=0.9):
+    return epsilon * (1 - gamma**T) / (1 - gamma)
