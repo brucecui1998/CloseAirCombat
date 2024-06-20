@@ -1,0 +1,51 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "train_selfplay",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/train/train_jsbsim.py",
+            "console": "integratedTerminal",
+            "args": [
+                "render_mode", "real_time",
+                "--env-name", "SingleCombat",
+                "--algorithm-name", "ppo",
+                "--scenario-name", "1v1/NoWeapon/Selfplay",
+                "--experiment-name", "v1",
+                "--seed", "1",
+                "--n-training-threads", "1",
+                "--n-rollout-threads", "1",
+                "--cuda",
+                "--log-interval", "1",
+                "--save-interval", "1",
+                "--use-selfplay",
+                "--selfplay-algorithm", "fsp",
+                "--n-choose-opponents", "1",
+                "--use-eval",
+                "--n-eval-rollout-threads", "1",
+                "--eval-interval", "1",
+                "--eval-episodes", "1",
+                "--num-mini-batch", "5",
+                "--buffer-size", "3000",
+                "--num-env-steps", "1e8",
+                "--lr", "3e-4",
+                "--gamma", "0.99",
+                "--ppo-epoch", "4",
+                "--clip-params", "0.2",
+                "--max-grad-norm", "2",
+                "--entropy-coef", "1e-3",
+                "--hidden-size", "128 128",
+                "--act-hidden-size", "128 128",
+                "--recurrent-hidden-size", "128",
+                "--recurrent-hidden-layers", "1",
+                "--data-chunk-length", "8"
+                //"--use-wandb",
+                //"--wandb-name", "cuirongpei2021"
+            ]
+        }
+    ]
+}

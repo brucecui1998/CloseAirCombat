@@ -7,9 +7,6 @@ test.py
 
 /scripts/results/*
 
-# vscode config
-.vscode
-
 # pycharm config
 .idea
 

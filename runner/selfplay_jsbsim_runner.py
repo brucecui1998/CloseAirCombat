@@ -1,9 +1,12 @@
+import sys
+import os
 import torch
 import logging
 import numpy as np
 from typing import List
 from .base_runner import Runner, ReplayBuffer
 from .jsbsim_runner import JSBSimRunner
+from envs.JSBSim.utils.utils import calculate_ossm, save_ossm_plot,calculate_mssm,calculate_mssm_upper_bound
 
 
 def _t2n(x):
@@ -123,7 +126,7 @@ class SelfplayJSBSimRunner(JSBSimRunner):
         self.buffer.insert(obs, actions, rewards, masks, action_log_probs, values, rnn_states_actor, rnn_states_critic)
 
     @torch.no_grad()
-    def eval(self, total_num_steps):
+    def eval(self, total_num_steps, tacview=None):
         logging.info("\nStart evaluation...")
         self.policy.prep_rollout()
         total_episodes = 0
@@ -137,6 +140,11 @@ class SelfplayJSBSimRunner(JSBSimRunner):
         logging.info(f" Choose opponents {eval_choose_opponents} for evaluation")
 
         eval_cur_opponent_idx = 0
+        
+        # OSSM数据存储
+        ossm_values = []
+        timestamps = []
+        self.timestamp = 0
         while total_episodes < self.eval_episodes:
 
             # [Selfplay] Load opponent policy
@@ -197,6 +205,26 @@ class SelfplayJSBSimRunner(JSBSimRunner):
             cumulative_rewards += eval_rewards
             episode_rewards.append(cumulative_rewards[dones_env == True])
             cumulative_rewards[dones_env == True] = 0
+            
+            # Tacview渲染逻辑
+            if self.render_mode == "real_time":
+                render_data = [f"#{self.timestamp:.2f}\n"]
+                for sim in self.eval_envs.envs[0]._jsbsims.values():
+                    log_msg = sim.log()
+                    
+                    # 计算ossm
+                    ossm = calculate_ossm(sim.get_rpy(), sim.get_rpy_velocity())
+                    # 更新OSSM数据
+                    ossm_values.append(ossm)
+                    timestamps.append(self.timestamp)
+                    
+                    if log_msg is not None:
+                        render_data.append(log_msg + "\n")
+                        
+                render_data_str = "".join(render_data)
+                tacview.send_data_to_client(render_data_str)
+            
+            self.timestamp += 0.2
 
         # Compute average episode rewards
         episode_rewards = np.concatenate(episode_rewards) # shape (self.eval_episodes, self.num_agents, 1)
@@ -232,6 +260,15 @@ class SelfplayJSBSimRunner(JSBSimRunner):
         logging.info(" eval average episode rewards: " + str(eval_infos['eval_average_episode_rewards']))
         logging.info(" latest elo score: " + str(self.latest_elo))
         self.log_info(eval_infos, total_num_steps)
+        
+        # 计算并保存 MSSM 和其上界
+        mssm = calculate_mssm(ossm_values, gamma=0.9)
+        epsilon = max(ossm_values)  # 假设OSSM的上限为已知的最大OSSM值
+        mssm_upper_bound = calculate_mssm_upper_bound(epsilon, len(ossm_values), gamma=0.9)
+        print(f"MSSM: {mssm}")
+        print(f"MSSM的上界: {mssm_upper_bound}")
+        save_ossm_plot(timestamps, ossm_values, mssm, mssm_upper_bound)
+    
         logging.info("...End evaluation")
 
         # [Selfplay] Reset opponent for the following training
