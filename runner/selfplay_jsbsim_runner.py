@@ -212,6 +212,7 @@ class SelfplayJSBSimRunner(JSBSimRunner):
                 for sim in self.eval_envs.envs[0]._jsbsims.values():
                     log_msg = sim.log()
                     
+                    # TODO 计算OSSM和MSSM逻辑需要修改，对战任务中有两个飞机，需要分别计算
                     # 计算ossm
                     ossm = calculate_ossm(sim.get_rpy(), sim.get_rpy_velocity())
                     # 更新OSSM数据
@@ -222,6 +223,7 @@ class SelfplayJSBSimRunner(JSBSimRunner):
                         render_data.append(log_msg + "\n")
                         
                 render_data_str = "".join(render_data)
+                print(render_data_str)
                 tacview.send_data_to_client(render_data_str)
             
             self.timestamp += 0.2
