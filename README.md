@@ -85,7 +85,7 @@ We now support two rendering modes for visualizing agent training:
 - **Description**: Saves trajectory data to an ACMI file at every evaluation interval. This allows you to perform post-analysis of the historical evaluations.
 - **Usage**: 
 ```bash
-bash train_selfplay.sh --eval-render-mode history_acmi --eval-interval 10
+bash train_selfplay.sh --eval-render-mode history_acmi --eval-interval 10 --use-eval
 ```
 This will save the trajectory data to an ACMI file every 10 episodes.
 
@@ -93,7 +93,7 @@ This will save the trajectory data to an ACMI file every 10 episodes.
 - **Description**: Maintains a live connection with Tacview Advanced for real-time visualization of the simulation. This mode provides dynamic tracking of agent behavior during training..
 - **Usage**: 
 ```bash
-bash train_selfplay.sh --eval-render-mode real_time --use-eval --eval-interval 10
+bash train_selfplay.sh --eval-render-mode real_time --use-eval --eval-interval 10 --use-eval
 ```
 Real-time telemetry will be sent to Tacview at the specified --eval-interval. Ensure Tacview Advanced is installed and configured to visualize the data.
 

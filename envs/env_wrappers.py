@@ -164,9 +164,11 @@ class DummyVecEnv(VecEnv):
         for env in self.envs:
             env.close()
 
-    def render(self, mode, filepath):
+    def render(self, mode, filepath="None", tacview=None):
         if mode == 'txt':
             self.envs[0].render(mode, filepath)
+        elif mode == 'real_time':
+            self.envs[0].render(mode, filepath, tacview)
 
     @classmethod
     def _flatten(cls, v):
@@ -219,6 +221,16 @@ def worker(remote: Connection, parent_remote: Connection, env_fn_wrappers):
                 remote.send(CloudpickleWrapper((envs[0].observation_space, envs[0].action_space)))
             elif cmd == 'get_num_agents':
                 remote.send(CloudpickleWrapper((getattr(envs[0], "num_agents", 1))))
+            elif cmd == 'render':  # 新增渲染命令
+                mode, filepath = data
+                if filepath is not None:
+                    # 生成唯一文件名（防止多进程写入冲突）
+                    base, ext = os.path.splitext(filepath)
+                    unique_filepath = f"{base}_proc{os.getpid()}{ext}"
+                    results = [env.render(mode=mode, filepath=unique_filepath) for env in envs]
+                else:
+                    results = [env.render(mode=mode) for env in envs]
+                remote.send(results)
             else:
                 raise NotImplementedError
     except KeyboardInterrupt:
@@ -319,6 +331,27 @@ class SubprocVecEnv(VecEnv):
 
         return [v__ for v_ in v for v__ in v_]
 
+
+    def render(self, mode='txt', filepath=None, tacview=None):
+            self._assert_not_closed()
+            
+            if mode == 'real_time':
+                raise NotImplementedError(
+                    "SubprocVecEnv does not support 'real_time' render mode when  --n-eval-rollout-threads != 1! "
+                    "Reason: Multiprocessing cannot handle real-time GUI rendering. "
+                    "Please use 'histroy_acmi' mode instead."
+                )
+
+            # 向所有子进程发送渲染命令
+            for remote in self.remotes:
+                remote.send(('render', (mode, filepath)))
+            
+            # 收集所有子进程的渲染结果
+            results = []
+            for remote in self.remotes:
+                results.extend(remote.recv())  # 每个子进程返回多个环境的渲染结果
+
+            return results
 
 class ShareVecEnv(VecEnv):
     """

@@ -171,6 +171,6 @@ class Runner(object):
         if self.eval_render_config:
             _config = self.eval_render_config 
             if _config['mode'] == 'txt' and self.current_episode % self.eval_interval == 0:
-                self.eval_envs.envs[0].render(_config['mode'], _config['filepath'])
+                self.eval_envs.render(_config['mode'], _config['filepath'])
             elif _config['mode'] == 'real_time':
-                self.eval_envs.envs[0].render(_config['mode'], "None", _config['tacview'])
+                self.eval_envs.render(_config['mode'], "None", _config['tacview'])
